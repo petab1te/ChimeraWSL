@@ -7,8 +7,11 @@
 
 bool DistributionInfo::CreateUser(std::wstring_view userName)
 {
-    // Create the user account.
     DWORD exitCode;
+    // Setting root password to chimera.
+    std::wstring passwd = L"echo -e \"chimera\\nchimera\" | passwd root";
+    g_wslApi.WslLaunchInteractive(passwd.c_str(), true, &exitCode);
+    // Create the user account.
     std::wstring commandLine = L"/usr/bin/useradd -m '' ";
     commandLine += userName;
     HRESULT hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
@@ -17,17 +20,18 @@ bool DistributionInfo::CreateUser(std::wstring_view userName)
     }
 
     // Add the user account to any relevant groups.
-    //commandLine = L"/usr/sbin/usermod -aG wheel ";
+    commandLine = L"/usr/sbin/usermod -a -G wheel,kvm,plugdev,audo,video ";
     //commandLine += userName;
-    //hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
-    /*if ((FAILED(hr)) || (exitCode != 0)) {
+    hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
+    if ((FAILED(hr)) || (exitCode != 0)) {
 
         // Delete the user if the group add command failed.
-        commandLine = L"/usr/sbin/deluser ";
+        commandLine = L"/usr/sbin/userdel -r ";
         commandLine += userName;
         g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
         return false;
-    }*/
+    }
+
 
     return true;
 }
