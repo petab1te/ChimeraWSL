@@ -9,16 +9,37 @@ bool DistributionInfo::CreateUser(std::wstring_view userName)
 {
     DWORD exitCode;
     // Setting root password to chimera.
-    std::wstring passwd = L"echo -e \"chimera\\nchimera\" | passwd root";
-    g_wslApi.WslLaunchInteractive(passwd.c_str(), true, &exitCode);
-    // Create the user account.
-    std::wstring commandLine = L"/usr/bin/useradd -m '' ";
+    std::wstring commandLine = L"echo -e \"chimera\\nchimera\" | passwd root";
+    HRESULT hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
+    if ((FAILED(hr)) || (exitCode != 0)) {
+        return false;
+    }
+    // Setting user password to chimera.
+    std::wstring commandLine = L"echo -e \"chimera\\nchimera\" | passwd ";
     commandLine += userName;
     HRESULT hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
     if ((FAILED(hr)) || (exitCode != 0)) {
         return false;
     }
-
+    // Install some basic packages
+    commandLine = L"apk add base-full";
+    g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
+    if ((FAILED(hr)) || (exitCode != 0)) {
+        return false;
+    }
+    // Add wheel as nopass to doas conf 
+    commandLine = L"echo \"permit nopass :wheel\" > / etc / doas.conf";
+    g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
+    if ((FAILED(hr)) || (exitCode != 0)) {
+        return false;
+    }
+    // Create the user account.
+    commandLine = L"/usr/bin/useradd -m '' ";
+    commandLine += userName;
+    hr = g_wslApi.WslLaunchInteractive(commandLine.c_str(), true, &exitCode);
+    if ((FAILED(hr)) || (exitCode != 0)) {
+        return false;
+    }
     // Add the user account to any relevant groups.
     commandLine = L"/usr/sbin/usermod -a -G wheel,kvm,plugdev,audo,video ";
     //commandLine += userName;
